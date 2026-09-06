@@ -6,6 +6,7 @@
     "moduleResolution": "Bundler",
     "noEmit": true,
     "paths": {
+      "@vuepress/theme-default/components/VPToggleColorModeButton.vue": ["types/vue-component.d.ts"],
       "@theme/VPHome.vue": [
         "types/vue-component.d.ts"
       ],

@@ -2,6 +2,7 @@ import path from "node:path"
 
 import MarkdownIt from "markdown-it"
 
+import { buildCatalog } from "../lib/catalog.js"
 import { listNoteFiles, readNoteFile } from "../lib/content.js"
 
 type Heading = {
@@ -71,6 +72,15 @@ for (const relativePath of files) {
       )
     }
   }
+}
+
+if (!errors.length) {
+  try {
+    buildCatalog(files.map(source => {
+      const note = readNoteFile(sourceDir, source)
+      return {source, path: `source:${source}`, title: note.title!, order: typeof note.data.order === "number" ? note.data.order : undefined}
+    }))
+  } catch (error) { errors.push(error instanceof Error ? error.message : String(error)) }
 }
 
 if (errors.length) {

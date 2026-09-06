@@ -1,109 +1,104 @@
 <script setup lang="ts">
 import { useHeaders } from "@vuepress/helper/client"
-import type { PageHeader } from "vuepress/client"
 import { ClientOnly, RouteLink, useRoute } from "vuepress/client"
-import { h, onMounted, ref, watch } from "vue"
-
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue"
 import { siteConfig } from "../../../site.config.js"
 
-const headers = useHeaders({
-  selector: "#content > :where(h2, h3)",
-  levels: [2, 3],
-})
+const headers = useHeaders({ selector: "#content > :where(h2, h3)", levels: [2, 3] })
+const entries = computed(() => headers.value.flatMap(h => [h, ...h.children]))
 const route = useRoute()
-const toc = ref<HTMLElement>()
-const tocMarkerTop = ref("-2rem")
+const open = ref(false)
+const panel = ref<HTMLElement>()
+const toggle = ref<HTMLButtonElement>()
+const active = ref("")
+let frame = 0
+let settled: ReturnType<typeof setTimeout>
+let pendingTarget = ""
+let observer: ResizeObserver | undefined
 
-const isActive = (header: PageHeader): boolean => route.hash === `#${header.slug}`
-
-const scrollTo = (top: number): void => {
-  toc.value?.scrollTo({ top, behavior: "smooth" })
+function syncActive() {
+  frame = 0
+  if (pendingTarget) return
+  const offset = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--ph-header-height")) + 48
+  const sections = entries.value.map(h => document.getElementById(h.slug)).filter((e): e is HTMLElement => Boolean(e))
+  const previous = sections.filter(e => e.getBoundingClientRect().top <= offset)
+  const atBottom = window.scrollY > 0 && window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2
+  active.value = (atBottom ? sections.at(-1)?.id : previous.at(-1)?.id) ?? sections[0]?.id ?? ""
 }
-
-const updateTocMarker = (): void => {
-  const activeItem = document.querySelector<HTMLElement>("#toc .vp-toc-item.active")
-
-  if (!toc.value || !activeItem) {
-    tocMarkerTop.value = "-2rem"
-    return
-  }
-
-  tocMarkerTop.value = `${
-    activeItem.getBoundingClientRect().top -
-    toc.value.getBoundingClientRect().top +
-    toc.value.scrollTop
-  }px`
+function schedule() {
+  if (!frame) frame = requestAnimationFrame(syncActive)
 }
-
-const keepActiveItemVisible = (hash: string): void => {
-  if (!toc.value || !hash) return
-
-  const activeLink = document.querySelector<HTMLElement>(`#toc a[href$="${hash}"]`)
-  if (!activeLink) return
-
-  const tocRect = toc.value.getBoundingClientRect()
-  const linkRect = activeLink.getBoundingClientRect()
-
-  if (linkRect.top < tocRect.top) {
-    scrollTo(toc.value.scrollTop + linkRect.top - tocRect.top)
-  } else if (linkRect.bottom > tocRect.bottom) {
-    scrollTo(toc.value.scrollTop + linkRect.bottom - tocRect.bottom)
-  }
+function onScroll() {
+  schedule()
+  clearTimeout(settled)
+  // A clicked destination stays selected throughout the router's smooth scroll.
+  settled = setTimeout(() => { pendingTarget = ""; schedule() }, 160)
 }
-
-onMounted(() => {
-  watch(
-    () => route.hash,
-    (hash) => keepActiveItemVisible(hash),
-    { immediate: true, flush: "post" },
-  )
-  watch(
-    () => route.fullPath,
-    () => requestAnimationFrame(updateTocMarker),
-    { immediate: true, flush: "post" },
-  )
+function interruptNavigation() { pendingTarget = ""; schedule() }
+async function keepActiveVisible() {
+  await nextTick()
+  const item = panel.value?.querySelector<HTMLElement>('[aria-current="location"]')
+  if (!item || !panel.value || !panel.value.clientHeight) return
+  const bounds = panel.value.getBoundingClientRect()
+  const rect = item.getBoundingClientRect()
+  if (rect.top < bounds.top) panel.value.scrollTop += rect.top - bounds.top
+  else if (rect.bottom > bounds.bottom) panel.value.scrollTop += rect.bottom - bounds.bottom
+}
+watch(active, keepActiveVisible)
+watch(open, value => { if (value) void keepActiveVisible() })
+watch(() => route.path, () => { open.value = false; pendingTarget = "" })
+watch(entries, async () => {
+  await nextTick()
+  observer?.disconnect()
+  const content = document.getElementById("content")
+  if (content) observer?.observe(content)
+  schedule()
 })
-
-const renderHeader = (header: PageHeader) =>
-  h(
-    RouteLink,
-    {
-      to: `#${header.slug}`,
-      class: ["vp-toc-link", `level${header.level}`],
-    },
-    () => header.title,
-  )
-
-const renderHeaders = (items: PageHeader[]): ReturnType<typeof h> | null =>
-  items.length
-    ? h(
-        "ul",
-        { class: "vp-toc-list" },
-        items.flatMap((header) => {
-          const children = renderHeaders(header.children)
-          return [
-            h(
-              "li",
-              { class: ["vp-toc-item", { active: isActive(header) }] },
-              renderHeader(header),
-            ),
-            children ? h("li", { class: "vp-toc-children" }, children) : null,
-          ]
-        }),
-      )
-    : null
+function navigate(slug: string) {
+  open.value = false
+  pendingTarget = slug
+  active.value = slug
+  clearTimeout(settled)
+  settled = setTimeout(() => { pendingTarget = ""; schedule() }, 1000)
+  requestAnimationFrame(() => document.getElementById(slug)?.focus({ preventScroll: true }))
+}
+function close() { open.value = false; toggle.value?.focus() }
+onMounted(() => {
+  observer = new ResizeObserver(schedule)
+  const content = document.getElementById("content")
+  if (content) observer.observe(content)
+  window.addEventListener("scroll", onScroll, { passive: true })
+  window.addEventListener("resize", schedule)
+  window.addEventListener("wheel", interruptNavigation, { passive: true })
+  window.addEventListener("touchstart", interruptNavigation, { passive: true })
+  schedule()
+})
+onBeforeUnmount(() => {
+  cancelAnimationFrame(frame)
+  clearTimeout(settled)
+  observer?.disconnect()
+  window.removeEventListener("scroll", onScroll)
+  window.removeEventListener("resize", schedule)
+  window.removeEventListener("wheel", interruptNavigation)
+  window.removeEventListener("touchstart", interruptNavigation)
+})
 </script>
 
 <template>
   <ClientOnly>
-    <div v-if="headers.length" class="vp-toc-placeholder">
-      <aside id="toc" vp-toc :aria-label="siteConfig.outline.ariaLabel">
-        <div class="vp-toc-header">{{ siteConfig.outline.title }}</div>
-        <div ref="toc" class="vp-toc-wrapper">
-          <component :is="renderHeaders(headers)" />
-          <div class="vp-toc-marker" :style="{ top: tocMarkerTop }" />
-        </div>
-      </aside>
-    </div>
+    <aside v-if="entries.length >= 2" id="toc" class="ph-outline" :class="{ 'is-open': open }" :aria-label="siteConfig.outline.ariaLabel" @keydown.esc.stop.prevent="close">
+      <div class="ph-outline-title">{{ siteConfig.outline.title }}</div>
+      <button ref="toggle" class="ph-outline-toggle" type="button" :aria-expanded="open" aria-controls="article-outline" @click="open = !open">
+        {{ siteConfig.outline.title }}
+        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m5 8 5 5 5-5" /></svg>
+      </button>
+      <nav id="article-outline" ref="panel" class="ph-outline-scroll" aria-label="文章章节">
+        <ul>
+          <li v-for="entry in entries" :key="entry.slug" class="vp-toc-item" :class="{ active: active === entry.slug, 'is-child': entry.level === 3 }">
+            <RouteLink :to="`#${entry.slug}`" class="vp-toc-link" :aria-current="active === entry.slug ? 'location' : undefined" @click="navigate(entry.slug)">{{ entry.title }}</RouteLink>
+          </li>
+        </ul>
+      </nav>
+    </aside>
   </ClientOnly>
 </template>

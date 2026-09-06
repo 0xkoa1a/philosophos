@@ -1,8 +1,9 @@
 export const siteConfig = {
   lang: "zh-CN",
-  title: "My Notes",
-  description: "A personal knowledge base",
-  navbar: [{ text: "首页", link: "/" }],
+  title: "Philosophos",
+  description: "",
+  navbar: [] as { text: string; link: string }[],
+  colorMode: "auto" as const,
   outline: {
     ariaLabel: "本页目录",
     title: "本页目录",

@@ -6,6 +6,7 @@
     "vuepress.config.ts",
     "plugins/**/*.ts",
     "playwright.config.ts",
+    "playwright.site.config.ts",
     "scripts/**/*.ts",
     "tests/**/*.ts"
   ]

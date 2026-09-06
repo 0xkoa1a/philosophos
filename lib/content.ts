@@ -37,7 +37,7 @@ export function listNoteFiles(sourceDir: string): string[] {
 
       const absolutePath = path.join(directory, entry.name)
       if (entry.isDirectory()) return visit(absolutePath)
-      if (!entry.isFile() || path.extname(entry.name).toLowerCase() !== ".md") {
+      if (!entry.isFile() || path.extname(entry.name) !== ".md") {
         return []
       }
       return [toPosix(path.relative(sourceDir, absolutePath))]
@@ -104,6 +104,19 @@ export function readNoteFile(
   )
   const rawTitle = document.data.title
   const rawOrder = document.data.order
+  if (!document.hasFrontmatter) throw new Error(`${relativePath}: frontmatter: required`)
+  if (typeof rawTitle !== "string" || !rawTitle.trim()) {
+    throw new Error(`${relativePath}: title: expected a non-empty string`)
+  }
+  if (rawOrder !== undefined && (typeof rawOrder !== "number" || !Number.isFinite(rawOrder))) {
+    throw new Error(`${relativePath}: order: expected a finite number or omit this field`)
+  }
+  if (document.data.summary !== undefined && typeof document.data.summary !== "string") {
+    throw new Error(`${relativePath}: summary: expected a string or omit this field`)
+  }
+  if (document.data.group !== undefined) {
+    throw new Error(`${relativePath}: group: groups are not supported; use thinker -> note and article headings`)
+  }
   const title =
     typeof rawTitle === "string" && rawTitle.trim() ? rawTitle.trim() : null
   const order =

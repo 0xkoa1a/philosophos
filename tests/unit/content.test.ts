@@ -17,6 +17,7 @@ test("note discovery matches VuePress page exclusions", async (context) => {
   await mkdir(path.join(root, ".drafts"), { recursive: true })
   await writeFile(path.join(root, "index.md"), "---\ntitle: Home\n---\n# Home\n")
   await writeFile(path.join(root, "README.md"), "not a page")
+  await writeFile(path.join(root, "UPPER.MD"), "not matched by VuePress lowercase pattern")
   await writeFile(path.join(root, ".hidden.md"), "not a page")
   await writeFile(
     path.join(root, "topic", "README.md"),

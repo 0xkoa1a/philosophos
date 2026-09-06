@@ -49,6 +49,9 @@ jobs:
       - name: Build site
         run: pnpm run docs:build
 
+      - name: Test site in Chromium
+        run: pnpm run test:browser
+
       - name: Test portable export
         run: pnpm run export:smoke
 

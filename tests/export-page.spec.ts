@@ -37,8 +37,10 @@ test.beforeAll(async () => {
     "_exports/.smoke/portable.html",
   ])
   await exportPage([
+    "--source-dir",
+    "tests/fixtures/notes",
     "--page",
-    "test/test.md",
+    "plain.md",
     "--output",
     "_exports/.smoke/plain.html",
   ])

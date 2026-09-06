@@ -8,13 +8,13 @@ VUEPRESS_CACHE := $(CURDIR)/notes/.vuepress/.cache
 
 help:
 	@echo ""
-	@echo "  VuePress Notes Template"
+	@echo "  Philosophos"
 	@echo ""
 	@echo "  make check    检查 Node、pnpm 与 VuePress 环境"
 	@echo "  make install  安装锁定版本的前端依赖"
 	@echo "  make render   完整构建静态站点到 _site/"
 	@echo "  make export PAGE=path/to/note.md   导出自包含单页 HTML"
-	@echo "  make test     运行类型、单元与导出回归测试"
+	@echo "  make test     运行类型、单元、浏览器与导出回归测试"
 	@echo "  make preview  启动本地增量预览"
 	@echo "  make clean    清理站点输出与 VuePress 缓存"
 	@echo ""
@@ -40,7 +40,7 @@ render: check
 	@echo "已生成 _site/index.html"
 
 export: check
-	@test -n "$(PAGE)" || { echo "请指定 PAGE，例如 make export PAGE=parallel/DeepEP.md"; exit 1; }
+	@test -n "$(PAGE)" || { echo "请指定 PAGE，例如 make export PAGE=rawls/justice-as-fairness.md"; exit 1; }
 	$(PNPM) run export:page -- --page "$(PAGE)" $(if $(filter 1,$(ALLOW_EXTERNAL)),--allow-external,)
 
 preview: check
@@ -50,11 +50,12 @@ test: check
 	$(PNPM) run typecheck
 	$(PNPM) test
 	$(PNPM) run docs:build
+	$(PNPM) run test:browser
 	$(PNPM) run export:smoke
 
 clean:
 	@test "$(SITE_OUTPUT)" = "$(CURDIR)/_site"
 	@test "$(VUEPRESS_TMP)" = "$(CURDIR)/notes/.vuepress/.temp"
 	@test "$(VUEPRESS_CACHE)" = "$(CURDIR)/notes/.vuepress/.cache"
-	rm -rf "$(SITE_OUTPUT)" "$(VUEPRESS_TMP)" "$(VUEPRESS_CACHE)"
-	@echo "已清理 _site/ 与 VuePress 缓存"
+	rm -rf "$(SITE_OUTPUT)" "$(VUEPRESS_TMP)" "$(VUEPRESS_CACHE)" "$(CURDIR)/_qa"
+	@echo "已清理 _site/、_qa/ 与 VuePress 缓存"

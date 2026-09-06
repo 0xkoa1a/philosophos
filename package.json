@@ -1,9 +1,12 @@
 {
-  "name": "vuepress-notes-template",
+  "name": "philosophos",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "scripts": {
+    "fixtures:build": "node scripts/build-fixtures.mjs",
+    "test:browser": "playwright test --config playwright.site.config.ts",
+    "docs:serve": "node scripts/serve-static.mjs",
     "check:content": "tsx scripts/check-headings.ts",
     "docs:dev": "vuepress dev notes --host 127.0.0.1",
     "docs:build": "vuepress build notes",

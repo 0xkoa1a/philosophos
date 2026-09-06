@@ -41,4 +41,20 @@ defineMermaidConfig({
         },
 })
 
-export default defineClientConfig({})
+export default defineClientConfig({
+  enhance({router}) {
+    const scrollBehavior = router.options.scrollBehavior
+    router.options.scrollBehavior = async (...args) => {
+      const position = await scrollBehavior?.(...args)
+      if (!args[2] && args[0].hash && position && "el" in position) {
+        const target = document.getElementById(decodeURIComponent(args[0].hash.slice(1)))
+        if (target) return {
+          ...position,
+          top: parseFloat(getComputedStyle(target).scrollMarginTop) || 0,
+          behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth",
+        }
+      }
+      return position
+    }
+  },
+})

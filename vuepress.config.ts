@@ -3,16 +3,15 @@ import path from "node:path"
 import { fileURLToPath } from "node:url"
 
 import { viteBundler } from "@vuepress/bundler-vite"
-import { activeHeaderLinksPlugin } from "@vuepress/plugin-active-header-links"
 import { markdownChartPlugin } from "@vuepress/plugin-markdown-chart"
 import { markdownExtPlugin } from "@vuepress/plugin-markdown-ext"
-import { slimsearchPlugin } from "@vuepress/plugin-slimsearch"
 import { defaultTheme } from "@vuepress/theme-default"
 import { defineUserConfig } from "vuepress"
 
 import { notePagePatterns } from "./lib/content.js"
 import { katexOnlyPlugin } from "./plugins/katex.js"
-import { createSidebar } from "./plugins/sidebar.js"
+import { catalogPlugin } from "./plugins/catalog.js"
+import { searchPlugin } from "./plugins/search.js"
 import { portableFileRouterPlugin } from "./plugins/portableExport.js"
 import { siteConfig } from "./site.config.js"
 
@@ -50,21 +49,13 @@ const [repositoryOwner = "", repositoryName = ""] =
   process.env.GITHUB_REPOSITORY?.split("/") ?? []
 const isUserSite =
   repositoryName.toLowerCase() === `${repositoryOwner.toLowerCase()}.github.io`
-const base = (
+const base = (process.env.PHILOSOPHOS_BASE ?? (
   process.env.GITHUB_ACTIONS === "true" && repositoryName && !isUserSite
     ? `/${repositoryName}/`
     : "/"
-) as `/${string}/`
-
-// SlimSearch rc.131 currently traverses text below <pre> even though code is
-// documented as excluded. Index a sanitized copy, then restore rendered HTML.
-const filterSearchPage = (page: { contentRendered: string }): boolean => {
-  const rendered = page.contentRendered
-  page.contentRendered = rendered.replace(/<pre\b[^>]*>[\s\S]*?<\/pre>/gi, "")
-  queueMicrotask(() => {
-    page.contentRendered = rendered
-  })
-  return true
+)) as `/${string}/`
+if (!base.startsWith("/") || !base.endsWith("/") || base.includes("..")) {
+  throw new Error("PHILOSOPHOS_BASE: expected an absolute base with a trailing slash")
 }
 
 export default defineUserConfig({
@@ -83,9 +74,10 @@ export default defineUserConfig({
   ],
   dest: isPortableExport
     ? process.env.VUEPRESS_EXPORT_DEST
-    : path.join(rootDir, "_site"),
-  temp: isPortableExport ? process.env.VUEPRESS_EXPORT_TEMP : undefined,
-  cache: isPortableExport ? process.env.VUEPRESS_EXPORT_CACHE : undefined,
+    : process.env.PHILOSOPHOS_DEST ?? path.join(rootDir, "_site"),
+  temp: isPortableExport ? process.env.VUEPRESS_EXPORT_TEMP : process.env.PHILOSOPHOS_TEMP,
+  cache: isPortableExport ? process.env.VUEPRESS_EXPORT_CACHE : process.env.PHILOSOPHOS_CACHE,
+  userStyle: path.join(rootDir, "notes/.vuepress/styles/index.scss"),
   pagePatterns: isPortableExport
     ? [portablePage as string]
     : [...notePagePatterns],
@@ -95,6 +87,7 @@ export default defineUserConfig({
     ? path.join(rootDir, "notes/.vuepress/templates/portable-build.html")
     : undefined,
   alias: {
+    "@theme/VPNavbar.vue": path.join(rootDir, "notes/.vuepress/components/SiteHeader.vue"),
     "@theme/VPPage.vue": path.join(
       rootDir,
       "notes/.vuepress/components/VPPage.vue",
@@ -118,18 +111,19 @@ export default defineUserConfig({
       : undefined,
   ),
   theme: defaultTheme({
-    colorMode: isPortableExport ? "light" : "auto",
+    colorMode: isPortableExport ? "light" : siteConfig.colorMode,
     colorModeSwitch: !isPortableExport,
     navbar: isPortableExport ? false : siteConfig.navbar,
-    sidebar: isPortableExport ? false : createSidebar(sourceDir),
+    sidebar: false,
     sidebarDepth: 0,
     contributors: false,
     lastUpdated: !isPortableExport,
     lastUpdatedText: isPortableExport ? undefined : "最近更新",
     editLink: false,
+    toggleColorMode: "切换明暗模式",
     themePlugins: {
       activeHeaderLinks: false,
-      backToTop: !isPortableExport,
+      backToTop: false,
       git: !isPortableExport,
       linksCheck: !isPortableExport,
       mediumZoom: true,
@@ -137,6 +131,10 @@ export default defineUserConfig({
     },
   }),
   plugins: [
+    catalogPlugin(sourceDir, isPortableExport),
+    ...(sourceDir !== path.join(rootDir, "notes")
+      ? [{ name: "philosophos-shared-client", clientConfigFile: path.join(rootDir, "notes/.vuepress/client.ts") }]
+      : []),
     ...(isPortableExport
       ? [
           {
@@ -145,9 +143,6 @@ export default defineUserConfig({
           },
         ]
       : []),
-    activeHeaderLinksPlugin({
-      headerLinkSelector: "a.vp-sidebar-item, a.vp-toc-link",
-    }),
     katexOnlyPlugin(),
     markdownExtPlugin({ tasklist: true }),
     markdownChartPlugin({
@@ -156,14 +151,6 @@ export default defineUserConfig({
     }),
     ...(isPortableExport
       ? []
-      : [
-          slimsearchPlugin({
-            indexContent: true,
-            filter: filterSearchPage,
-            locales: {
-              "/": { placeholder: "搜索文档" },
-            },
-          }),
-        ]),
+      : [searchPlugin(rootDir)]),
   ],
 })

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 240" role="img" aria-labelledby="title">
+<title id="title">排版测试图</title>
+<rect width="960" height="240" fill="#e9eade"/>
+<g fill="none" stroke="#68745d" stroke-width="2"><rect x="60" y="70" width="200" height="100"/><rect x="380" y="70" width="200" height="100"/><rect x="700" y="70" width="200" height="100"/><path d="M280 120h80m-12-10 12 10-12 10M600 120h80m-12-10 12 10-12 10"/></g>
+<g text-anchor="middle" fill="#292d2b" font-family="serif" font-size="30"><text x="160" y="130">阅读</text><text x="480" y="130">组织</text><text x="800" y="130">复习</text></g>
+</svg>

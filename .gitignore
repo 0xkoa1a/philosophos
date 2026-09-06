@@ -2,6 +2,8 @@
 
 # VuePress dependencies, caches, and output
 node_modules/
+_qa/
+.pnpm-store/
 _site/
 _exports/
 .vuepress-export-*/
