@@ -59,3 +59,9 @@
 已测试 Chromium 与实际内置浏览器预览；未单独运行 Safari、Firefox 或实体手机。跨平台使用不同系统衬线字体时字形可能不同。首次本地验收时，子路径能力由静态构建验证。随后用户确认发布到 `0xkoa1a/philosophos`；远端构建与部署状态见 [Pages 工作流](https://github.com/0xkoa1a/philosophos/actions/workflows/deploy-pages.yml)，线上地址为 `https://0xkoa1a.github.io/philosophos/`。
 
 完成截图和检查后停止本任务静态预览服务器，并执行 `make clean`，清理输出、测试构建与 VuePress 缓存；保留源代码、锁定依赖、截图和文档。需要再次预览时按 README 运行 `make preview`，或重新构建后静态访问。
+
+## 分隔线与返回文案修订（2026-09-06）
+
+按用户澄清，首页人物列表与人物篇目列表首项上方各恢复一条分隔线；保留后续条目之间的分隔，不在“篇目”标题或第一条目上重复画线。人物返回文字改为“回到Philosophos”，读取集中站名；文章页头与页尾共用“返回{人物名}”。
+
+修订后 `make test` 全部通过：内容检查、类型检查、14 项单元/路由测试、正式构建、12 项浏览器测试、4 项离线导出测试。额外使用真实 Chromium 在 1440px/390px、亮色/暗色下检查列表上边线为 1px、首项上边线与列表标题下边线为 0px，核对两处返回文案与返回路径，页面无横向溢出和 pageerror。截图已更新；`git diff --check` 通过。

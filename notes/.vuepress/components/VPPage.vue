@@ -8,6 +8,9 @@ const page = usePageData<{reading?: ReadingPageData}>()
 const data = computed(() => page.value.reading)
 const isPortableExport = import.meta.env.VITE_PORTABLE_EXPORT === "1"
 const isHome = computed(() => data.value?.kind === "home")
+const backLabel = computed(() => data.value?.kind === "thinker"
+  ? `回到${siteConfig.title}`
+  : `返回${data.value?.parent?.title ?? ""}`)
 </script>
 
 <template>
@@ -16,7 +19,7 @@ const isHome = computed(() => data.value?.kind === "home")
       <article class="ph-article">
         <RouteLink v-if="data?.parent && !isPortableExport" :to="data.parent.path" class="ph-back">
           <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M16 10H4m5-5-5 5 5 5" /></svg>
-          {{ data.kind === 'thinker' ? '思想家索引' : data.parent.title }}
+          {{ backLabel }}
         </RouteLink>
         <header class="ph-heading">
           <h1 :id="data?.headingAnchor" class="ph-title" :class="{ 'ph-home-name': isHome }" tabindex="-1">{{ isHome ? siteConfig.title : page.title }}</h1>
@@ -34,7 +37,7 @@ const isHome = computed(() => data.value?.kind === "home")
           </ol>
         </nav>
         <footer v-if="data?.parent && !isPortableExport && data.kind === 'article'" class="ph-reading-footer">
-          <RouteLink :to="data.parent.path" class="ph-back"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M16 10H4m5-5-5 5 5 5" /></svg>返回{{ data.parent.title }}</RouteLink>
+          <RouteLink :to="data.parent.path" class="ph-back"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M16 10H4m5-5-5 5 5 5" /></svg>{{ backLabel }}</RouteLink>
         </footer>
       </article>
       <ArticleToc v-if="!data || data.kind === 'article'" />
